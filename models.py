@@ -87,11 +87,20 @@ class LogisticRegression(Model):
     def dot_product(self, x):
         return sum(self.w[k]*v for (k,v) in x.iteritems())
  
+    """
+    option: regularization penalty for all of w, or only the relevant components for this point
+    latter option appears to have better performance
+    """
     def sgd_step(self, training_point, step_size, mu):
         (i, x, y) = training_point
         p = 1./(1 + numpy.exp(y*self.dot_product(x)))
+        
         for (k, v) in x.iteritems():
             self.w[k] = (1-step_size*mu)*self.w[k] - step_size*(-1*p*y*v)
+
+        #self.w[:] = (1-step_size*mu)*self.w
+        #for (k, v) in x.iteritems():
+            #self.w[k] -= step_size*(-1*p*y*v)
         
     def saga_step(self, training_point, step_size, mu):
         (i, x, y) = training_point
@@ -100,16 +109,21 @@ class LogisticRegression(Model):
         alpha = self.table[i] if i in self.table else 0
         m = len(self.table) if len(self.table)!= 0 else 1
         
-        for (k, v) in x.iteritems():
-            self.w[k] = (1-step_size*mu)*self.w[k] - step_size*( (g-alpha)*v + self.table_sum[k]/m )
+        #self.w[:] = (1-step_size*mu)*self.w
         
+        for (k, v) in x.iteritems():
+            self.w[k] = (1-step_size*mu)*self.w[k] - step_size*(g-alpha)*v
+            
+        self.w -= step_size*(1./m)*self.table_sum
+          
         self.table[i] = g
         for (k, v) in x.iteritems():
             self.table_sum[k] += (g-alpha)*v
         
     def loss(self, data):
-        return sum( numpy.log(1+numpy.exp(-1*y*self.dot_product(x))) for (x,y) in data )/len(data)
+        return sum( numpy.log(1+numpy.exp(-1*y*self.dot_product(x))) for (i,x,y) in data )/len(data)
         
     def reg_loss(self, data, mu):
-        return self.loss(data) + 0.5*mu*numpy.dot(w, w)
+        return sum( numpy.log(1+numpy.exp(-1*y*self.dot_product(x))) + 0.5*mu*sum(self.w[k]**2 for (k,v) in x.iteritems()) for (i,x,y) in data )/len(data)
+        #return self.loss(data) + 0.5*mu*numpy.dot(self.w, self.w)
 

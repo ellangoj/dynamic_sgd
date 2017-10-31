@@ -6,28 +6,16 @@ import matplotlib.pyplot as plt
 import datasets
 import models
 
-
-""" 
-hyperparameters determined by good validation set error 
-after single pass SGD or 2n steps of DynaSAGA on a subset of training set
-(turns out that SAGA and SGD step size coincide in each case)
-"""
-MOVIELENS_STEP_SIZE = 5e-3
-MOVIELENS_MU = 1e-1
-A9A_STEP_SIZE = 5e-3
-A9A_MU = 1e-3
 RCV_STEP_SIZE = 5e-1
 RCV_MU = 1e-5
-REALSIM_STEP_SIZE = 5e-1
-REALSIM_MU = 1e-6
 
 """
 b: length of stream
 arrivals: lambda
 """
 def process(train_set, test_set, b, arrivals, rho, parameters):
-    step_size = MOVIELENS_STEP_SIZE
-    mu = MOVIELENS_MU
+    step_size = RCV_STEP_SIZE
+    mu = RCV_MU
     
     loss = {
                 'Inc': {'train': [0]*b, 'test': [0]*b, 'inctrain': [0]*12},
@@ -61,40 +49,40 @@ def process(train_set, test_set, b, arrivals, rho, parameters):
         S_prev = S
         S += arrivals
         
-        if time % (b/12 + 1) == 0:
-            t = time / (b/12 + 1)
+        #if time % (b/12 + 1) == 0:
+            #t = time / (b/12 + 1)
             
-            # Algo A
-            mA = 0
-            for s in xrange(20*arrivals*time):
-                if (s % 2 == 0 and mA < S):
-                    j = mA
-                    mA += 1
-                else:
-                    j = random.randrange(mA)
-                parameters['A'][t].update_step(train_set[j], step_size, mu)
+            ## Algo A
+            #mA = 0
+            #for s in xrange(20*arrivals*time):
+                #if (s % 2 == 0 and mA < S):
+                    #j = mA
+                    #mA += 1
+                #else:
+                    #j = random.randrange(mA)
+                #parameters['A'][t].update_step(train_set[j], step_size, mu)
             
-            # Algo B
-            mB = 0
-            for s in xrange(rho*time):
-                if (s % 2 == 0 and mB < S):
-                    j = mB
-                    mB += 1
-                else:
-                    j = random.randrange(mB)
-                parameters['B'][t].update_step(train_set[j], step_size, mu)
+            ## Algo B
+            #mB = 0
+            #for s in xrange(rho*time):
+                #if (s % 2 == 0 and mB < S):
+                    #j = mB
+                    #mB += 1
+                #else:
+                    #j = random.randrange(mB)
+                #parameters['B'][t].update_step(train_set[j], step_size, mu)
                 
-            loss['Inc']['inctrain'][t] = parameters['Inc'].reg_loss(train_set[:S], mu)
-            loss['Unif']['inctrain'][t] = parameters['Unif'].reg_loss(train_set[:S], mu)
-            loss['NearUnif']['inctrain'][t] = parameters['NearUnif'].reg_loss(train_set[:S], mu)
-            loss['ExpDecay']['inctrain'][t] = parameters['ExpDecay'].reg_loss(train_set[:S], mu)
-            loss['MostRecent']['inctrain'][t] = parameters['MostRecent'].reg_loss(train_set[:S], mu)
-            loss['A']['inctrain'][t] = parameters['A'][t].reg_loss(train_set[:S], mu)
-            loss['B']['inctrain'][t] = parameters['B'][t].reg_loss(train_set[:S], mu)            
-            loss['A']['train'][t] = parameters['A'][t].reg_loss(train_set, mu)
-            loss['A']['test'][t] = parameters['A'][t].loss(test_set)
-            loss['B']['train'][t] = parameters['B'][t].reg_loss(train_set, mu)
-            loss['B']['test'][t] = parameters['B'][t].loss(test_set)
+            #loss['Inc']['inctrain'][t] = parameters['Inc'].reg_loss(train_set[:S], mu)
+            #loss['Unif']['inctrain'][t] = parameters['Unif'].reg_loss(train_set[:S], mu)
+            #loss['NearUnif']['inctrain'][t] = parameters['NearUnif'].reg_loss(train_set[:S], mu)
+            #loss['ExpDecay']['inctrain'][t] = parameters['ExpDecay'].reg_loss(train_set[:S], mu)
+            #loss['MostRecent']['inctrain'][t] = parameters['MostRecent'].reg_loss(train_set[:S], mu)
+            #loss['A']['inctrain'][t] = parameters['A'][t].reg_loss(train_set[:S], mu)
+            #loss['B']['inctrain'][t] = parameters['B'][t].reg_loss(train_set[:S], mu)            
+            #loss['A']['train'][t] = parameters['A'][t].reg_loss(train_set, mu)
+            #loss['A']['test'][t] = parameters['A'][t].loss(test_set)
+            #loss['B']['train'][t] = parameters['B'][t].reg_loss(train_set, mu)
+            #loss['B']['test'][t] = parameters['B'][t].loss(test_set)
         
         for s in xrange(rho):
             # IncSAGA
@@ -134,11 +122,12 @@ def process(train_set, test_set, b, arrivals, rho, parameters):
             parameters['MostRecent'].update_step(train_set[j], step_size, mu)
             
             # Offline
-            if (s % 2 == 0 and m < len(train_data)):
-                j = m
-                m += 1
-            else:
-                j = random.randrange(m)
+            j = random.randrange(len(train_set))
+            #if (s % 2 == 0 and m < len(train_set)):
+                #j = m
+                #m += 1
+            #else:
+                #j = random.randrange(m)
             parameters['Offline'].update_step(train_set[j], step_size, mu)
                 
     return loss
@@ -148,8 +137,8 @@ def ylims(o, split):
             o['Unif'][split][-1],
             o['NearUnif'][split][-1],
             o['MostRecent'][split][-1],
-            o['A'][split][-1],
-            o['B'][split][-1]
+            o['ExpDecay'][split][-1],
+            o['Offline'][split][-1]
           ]
     
     lower_bound = min(end) - 0.01
@@ -158,8 +147,8 @@ def ylims(o, split):
                   o['Unif'][split][10],
                   o['NearUnif'][split][10],
                   o['MostRecent'][split][10],
-                  o['A'][split][1],
-                  o['B'][split][1]              
+                  o['ExpDecay'][split][10],
+                  o['Offline'][split][10]
                 ]
     
     upper_bound = max(beginning) + 0.01
@@ -178,12 +167,12 @@ def plot(output, rate, b, name):
     
     plt.figure(1)
     plt.clf()
-    plt.plot(xx, output['Inc']['train'], 'm.-', label='IncSAGA')
-    plt.plot(xx, output['Unif']['train'], 'c.-', label='Uniform')
-    plt.plot(xx, output['NearUnif']['train'], 'y.-', label='NearUniform')
-    plt.plot(xx, output['MostRecent']['train'], 'g.-', label='MostRecent')
-    plt.plot(xxx, output['A']['train'], 'r.-', label='Algo A')
-    plt.plot(xxx, output['B']['train'], 'b.-', label='Algo B')
+    plt.plot(xx, output['Inc']['train'], 'g.-', label='IncSGD')
+    plt.plot(xx, output['Unif']['train'], 'm.-', label='Uniform')
+    plt.plot(xx, output['NearUnif']['train'], 'b.-', label='NearUniform')
+    plt.plot(xx, output['MostRecent']['train'], 'r.-', label='MostRecent')
+    plt.plot(xx, output['ExpDecay']['train'], 'y.-', label='ExpDecay')
+    plt.plot(xx, output['Offline']['train'], 'k.-', label='Offline')
     plt.xlabel('Time')
     plt.ylabel('Average training loss')
     plt.title('{0} training loss, rho/lambda={1}, batch_size={2}'.format(name, rate, 1./b))
@@ -196,12 +185,12 @@ def plot(output, rate, b, name):
     
     plt.figure(2)
     plt.clf()
-    plt.plot(xx, output['Inc']['test'], 'm.-', label='IncSAGA')
-    plt.plot(xx, output['Unif']['test'], 'c.-', label='Uniform')
-    plt.plot(xx, output['NearUnif']['test'], 'y.-', label='NearUniform')
-    plt.plot(xx, output['MostRecent']['test'], 'g.-', label='MostRecent')
-    plt.plot(xxx, output['A']['test'], 'r.-', label='Algo A')
-    plt.plot(xxx, output['B']['test'], 'b.-', label='Algo B')
+    plt.plot(xx, output['Inc']['test'], 'g.-', label='IncSGD')
+    plt.plot(xx, output['Unif']['test'], 'm.-', label='Uniform')
+    plt.plot(xx, output['NearUnif']['test'], 'b.-', label='NearUniform')
+    plt.plot(xx, output['MostRecent']['test'], 'r.-', label='MostRecent')
+    plt.plot(xx, output['ExpDecay']['test'], 'y.-', label='ExpDecay')
+    plt.plot(xx, output['Offline']['test'], 'k.-', label='Offline')
     plt.xlabel('Time')
     plt.ylabel('Average test loss')
     plt.title('{0} test loss, rho/lambda={1}, batch_size={2}'.format(name, rate, 1./b))
@@ -211,35 +200,15 @@ def plot(output, rate, b, name):
     plt.ylim(lower, upper)
     plt.savefig(os.path.join(path_eps,'{0}_r{1}b{2}test.eps'.format(name, rate, b)), format='eps')
     plt.savefig(os.path.join(path_png,'{0}_r{1}b{2}test.png'.format(name, rate, b)), format='png', dpi=200)
-
-    #xxxx = xxx[1:]
-    xxxx = xxx
-    plt.figure(3)
-    plt.clf()
-    plt.plot(xxxx, output['Inc']['inctrain'], 'm.-', label='IncSAGA')
-    plt.plot(xxxx, output['Unif']['inctrain'], 'c.-', label='Uniform')
-    plt.plot(xxxx, output['NearUnif']['inctrain'], 'y.-', label='NearUniform')
-    plt.plot(xxxx, output['MostRecent']['inctrain'], 'g.-', label='MostRecent')
-    plt.plot(xxxx, output['A']['inctrain'], 'r.-', label='Algo A')
-    plt.plot(xxxx, output['B']['inctrain'], 'b.-', label='Algo B')
-    plt.xlabel('Time')
-    plt.ylabel('Average training loss on Si')
-    plt.title('{0} training loss, rho/lambda={1}, batch_size={2}'.format(name, rate, 1./b))
-    plt.legend()
-    plt.xlim(0, b)
-    plt.savefig(os.path.join(path_eps,'{0}_r{1}b{2}inctrain.eps'.format(name, rate, b)), format='eps')
-    plt.savefig(os.path.join(path_png,'{0}_r{1}b{2}inctrain.png'.format(name, rate, b)), format='png', dpi=200)
-
-if __name__ == "__main__":
-    train_data, test_data, m, n = datasets.movielens100k()
     
-    r = 5
-    init_L = numpy.random.rand(m, r)
-    init_R = numpy.random.rand(r, n)
-    opt = models.Opt.SAGA
+if __name__ == "__main__":
+    train_data, test_data, d = datasets.rcv()
+
+    init_w = numpy.random.rand(d)
+    opt = models.Opt.SGD
     
     batches = [100]
-    rates = [15]     # rho/lambda
+    rates = [10]     # rho/lambda
     num_trials = 1
     
     for b in batches:
@@ -248,14 +217,14 @@ if __name__ == "__main__":
             rho = int(arrivals * rate)
             
             parameters = {}
-            parameters['Inc'] = models.MatrixFactorization(init_L, init_R, opt)
-            parameters['Unif'] = models.MatrixFactorization(init_L, init_R, opt)
-            parameters['NearUnif'] = models.MatrixFactorization(init_L, init_R, opt)
-            parameters['ExpDecay'] = models.MatrixFactorization(init_L, init_R, opt)
-            parameters['MostRecent'] = models.MatrixFactorization(init_L, init_R, opt)
-            parameters['Offline'] = models.MatrixFactorization(init_L, init_R, opt)
-            parameters['A'] = [models.MatrixFactorization(init_L, init_R, opt) for x in xrange(12)]
-            parameters['B'] = [models.MatrixFactorization(init_L, init_R, opt) for x in xrange(12)]
+            parameters['Inc'] = models.LogisticRegression(init_w, opt)
+            parameters['Unif'] = models.LogisticRegression(init_w, opt)
+            parameters['NearUnif'] = models.LogisticRegression(init_w, opt)
+            parameters['ExpDecay'] = models.LogisticRegression(init_w, opt)
+            parameters['MostRecent'] = models.LogisticRegression(init_w, opt)
+            parameters['Offline'] = models.LogisticRegression(init_w, opt)
+            parameters['A'] = [models.LogisticRegression(init_w, opt) for x in xrange(12)]
+            parameters['B'] = [models.LogisticRegression(init_w, opt) for x in xrange(12)]
             
             output = process(train_data, test_data, b, arrivals, rho, parameters)
             
@@ -263,4 +232,4 @@ if __name__ == "__main__":
             
             # TODO: save output to a file
             
-            plot(output, rate, b, 'mf')
+            plot(output, rate, b, 'rcv')
