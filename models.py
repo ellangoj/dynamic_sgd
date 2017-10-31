@@ -85,7 +85,7 @@ class LogisticRegression(Model):
         
     # dot product with a sparse feature vector
     def dot_product(self, x):
-        return sum( self.w[k]*v for (k,v) in x.iteritems())
+        return sum(self.w[k]*v for (k,v) in x.iteritems())
  
     def sgd_step(self, training_point, step_size, mu):
         (i, x, y) = training_point
@@ -112,7 +112,4 @@ class LogisticRegression(Model):
         
     def reg_loss(self, data, mu):
         return self.loss(data) + 0.5*mu*numpy.dot(w, w)
- 
-#if __name__ == "__main__":
-    #m = MatrixFactorization(1, 2, Opt.SGD)
-    #m.update_step((1, 2, 3), 2, 3)
+

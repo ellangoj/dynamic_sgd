@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import datasets
 import models
 
-
 if __name__ == "__main__":
     train_set, test_set, m, n = datasets.movielens100k()
     split = int(0.8*len(train_set))

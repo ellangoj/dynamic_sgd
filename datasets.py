@@ -126,10 +126,3 @@ def movielens1m():
     test_data = data[900000:]
     
     return train_data, test_data, m, n
-
-#if __name__ == "__main__":
-    #(train, test, d) = rcv()
-    #(x, y) = train[0]
-    #print x[587]
-    #print y
-    #print d
