@@ -25,7 +25,8 @@ def process(train_set, test_set, b, arrivals, rho, parameters):
                 'MostRecent': {'train': [0]*b, 'test': [0]*b, 'inctrain': [0]*12},
                 'Offline': {'train': [0]*b, 'test': [0]*b},
                 'A': {'train': [0]*12, 'test': [0]*12, 'inctrain': [0]*12},
-                'B': {'train': [0]*12, 'test': [0]*12, 'inctrain': [0]*12}                
+                'B': {'train': [0]*12, 'test': [0]*12, 'inctrain': [0]*12},
+                'MostRecentR': {'train': [0]*b, 'test': [0]*b, 'inctrain': [0]*12}             
            }
     
     S = 0   # S_i = train_data[0:S]
@@ -45,6 +46,8 @@ def process(train_set, test_set, b, arrivals, rho, parameters):
         loss['MostRecent']['test'][time] = parameters['MostRecent'].loss(test_set)
         loss['Offline']['train'][time] = parameters['Offline'].reg_loss(train_set, mu)
         loss['Offline']['test'][time] = parameters['Offline'].loss(test_set)
+        loss['MostRecentR']['train'][time] = parameters['MostRecentR'].reg_loss(train_set, mu)
+        loss['MostRecentR']['test'][time] = parameters['MostRecentR'].loss(test_set)
         
         S_prev = S
         S += arrivals
@@ -121,6 +124,10 @@ def process(train_set, test_set, b, arrivals, rho, parameters):
             j = random.randrange(S_prev, S)
             parameters['MostRecent'].update_step(train_set[j], step_size, mu)
             
+            # MostRecent with larger regularization
+            j = random.randrange(S_prev, S)
+            parameters['MostRecentR'].update_step(train_set[j], step_size, mu*2)
+            
             # Offline
             j = random.randrange(len(train_set))
             #if (s % 2 == 0 and m < len(train_set)):
@@ -138,7 +145,8 @@ def ylims(o, split):
             o['NearUnif'][split][-1],
             o['MostRecent'][split][-1],
             o['ExpDecay'][split][-1],
-            o['Offline'][split][-1]
+            o['Offline'][split][-1],
+            o['MostRecentR'][split][-1]
           ]
     
     lower_bound = min(end) - 0.01
@@ -148,7 +156,8 @@ def ylims(o, split):
                   o['NearUnif'][split][10],
                   o['MostRecent'][split][10],
                   o['ExpDecay'][split][10],
-                  o['Offline'][split][10]
+                  o['Offline'][split][10],
+                  o['MostRecentR'][split][10]
                 ]
     
     upper_bound = max(beginning) + 0.01
@@ -173,6 +182,7 @@ def plot(output, rate, b, name):
     plt.plot(xx, output['MostRecent']['train'], 'r.-', label='MostRecent')
     plt.plot(xx, output['ExpDecay']['train'], 'y.-', label='ExpDecay')
     plt.plot(xx, output['Offline']['train'], 'k.-', label='Offline')
+    plt.plot(xx, output['MostRecentR']['train'], 'r--', label='MostRecentR')
     plt.xlabel('Time')
     plt.ylabel('Average training loss')
     plt.title('{0} training loss, rho/lambda={1}, batch_size={2}'.format(name, rate, 1./b))
@@ -191,6 +201,7 @@ def plot(output, rate, b, name):
     plt.plot(xx, output['MostRecent']['test'], 'r.-', label='MostRecent')
     plt.plot(xx, output['ExpDecay']['test'], 'y.-', label='ExpDecay')
     plt.plot(xx, output['Offline']['test'], 'k.-', label='Offline')
+    plt.plot(xx, output['MostRecentR']['test'], 'r--', label='MostRecentR')
     plt.xlabel('Time')
     plt.ylabel('Average test loss')
     plt.title('{0} test loss, rho/lambda={1}, batch_size={2}'.format(name, rate, 1./b))
@@ -227,6 +238,7 @@ if __name__ == "__main__":
             parameters['Offline'] = models.MatrixFactorization(init_L, init_R, opt)
             parameters['A'] = [models.MatrixFactorization(init_L, init_R, opt) for x in xrange(12)]
             parameters['B'] = [models.MatrixFactorization(init_L, init_R, opt) for x in xrange(12)]
+            parameters['MostRecentR'] = models.MatrixFactorization(init_L, init_R, opt)
             
             output = process(train_data, test_data, b, arrivals, rho, parameters)
             

@@ -24,11 +24,10 @@ REALSIM_MU = 1e-6
 """
 b: length of stream
 arrivals: lambda
+
+assume a fixed step size and regularization parameter mu
 """
-def process(train_set, test_set, b, arrivals, rho, parameters):
-    step_size = MOVIELENS_STEP_SIZE
-    mu = MOVIELENS_MU
-    
+def process(train_set, test_set, b, arrivals, rho, parameters, step_size, mu):
     loss = {
                 'Inc': {'train': [0]*b, 'test': [0]*b, 'inctrain': [0]*12},
                 'Unif': {'train': [0]*b, 'test': [0]*b, 'inctrain': [0]*12},
@@ -83,6 +82,11 @@ def process(train_set, test_set, b, arrivals, rho, parameters):
                 else:
                     j = random.randrange(mB)
                 parameters['B'][t].update_step(train_set[j], step_size, mu)
+            
+            loss['A']['train'][t] = parameters['A'][t].reg_loss(train_set, mu)
+            loss['A']['test'][t] = parameters['A'][t].loss(test_set)
+            loss['B']['train'][t] = parameters['B'][t].reg_loss(train_set, mu)
+            loss['B']['test'][t] = parameters['B'][t].loss(test_set)
                 
             loss['Inc']['inctrain'][t] = parameters['Inc'].reg_loss(train_set[:S], mu)
             loss['Unif']['inctrain'][t] = parameters['Unif'].reg_loss(train_set[:S], mu)
@@ -91,10 +95,6 @@ def process(train_set, test_set, b, arrivals, rho, parameters):
             loss['MostRecent']['inctrain'][t] = parameters['MostRecent'].reg_loss(train_set[:S], mu)
             loss['A']['inctrain'][t] = parameters['A'][t].reg_loss(train_set[:S], mu)
             loss['B']['inctrain'][t] = parameters['B'][t].reg_loss(train_set[:S], mu)            
-            loss['A']['train'][t] = parameters['A'][t].reg_loss(train_set, mu)
-            loss['A']['test'][t] = parameters['A'][t].loss(test_set)
-            loss['B']['train'][t] = parameters['B'][t].reg_loss(train_set, mu)
-            loss['B']['test'][t] = parameters['B'][t].loss(test_set)
         
         for s in xrange(rho):
             # IncSAGA
@@ -212,16 +212,14 @@ def plot(output, rate, b, name):
     plt.savefig(os.path.join(path_eps,'{0}_r{1}b{2}test.eps'.format(name, rate, b)), format='eps')
     plt.savefig(os.path.join(path_png,'{0}_r{1}b{2}test.png'.format(name, rate, b)), format='png', dpi=200)
 
-    #xxxx = xxx[1:]
-    xxxx = xxx
     plt.figure(3)
     plt.clf()
-    plt.plot(xxxx, output['Inc']['inctrain'], 'm.-', label='IncSAGA')
-    plt.plot(xxxx, output['Unif']['inctrain'], 'c.-', label='Uniform')
-    plt.plot(xxxx, output['NearUnif']['inctrain'], 'y.-', label='NearUniform')
-    plt.plot(xxxx, output['MostRecent']['inctrain'], 'g.-', label='MostRecent')
-    plt.plot(xxxx, output['A']['inctrain'], 'r.-', label='Algo A')
-    plt.plot(xxxx, output['B']['inctrain'], 'b.-', label='Algo B')
+    plt.plot(xxx, output['Inc']['inctrain'], 'm.-', label='IncSAGA')
+    plt.plot(xxx, output['Unif']['inctrain'], 'c.-', label='Uniform')
+    plt.plot(xxx, output['NearUnif']['inctrain'], 'y.-', label='NearUniform')
+    plt.plot(xxx, output['MostRecent']['inctrain'], 'g.-', label='MostRecent')
+    plt.plot(xxx, output['A']['inctrain'], 'r.-', label='Algo A')
+    plt.plot(xxx, output['B']['inctrain'], 'b.-', label='Algo B')
     plt.xlabel('Time')
     plt.ylabel('Average training loss on Si')
     plt.title('{0} training loss, rho/lambda={1}, batch_size={2}'.format(name, rate, 1./b))
@@ -233,7 +231,7 @@ def plot(output, rate, b, name):
 if __name__ == "__main__":
     train_data, test_data, m, n = datasets.movielens100k()
     
-    r = 5
+    r = 10
     init_L = numpy.random.rand(m, r)
     init_R = numpy.random.rand(r, n)
     opt = models.Opt.SAGA
@@ -257,7 +255,8 @@ if __name__ == "__main__":
             parameters['A'] = [models.MatrixFactorization(init_L, init_R, opt) for x in xrange(12)]
             parameters['B'] = [models.MatrixFactorization(init_L, init_R, opt) for x in xrange(12)]
             
-            output = process(train_data, test_data, b, arrivals, rho, parameters)
+            output = process(train_data, test_data, b, arrivals, rho, parameters, 
+                             step_size=MOVIELENS_STEP_SIZE, mu=MOVIELENS_MU)
             
             # TODO: average outputs over num_trials
             
