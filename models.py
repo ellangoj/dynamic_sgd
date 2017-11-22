@@ -1,7 +1,7 @@
 import numpy
 
 # enum
-class Opt():
+class Opt:
     SGD = 'sgd'
     SAGA = 'saga'
 

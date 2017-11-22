@@ -40,8 +40,8 @@ def process(train_set, test_set, b, arrivals, rho, parameters, step_size, mu):
            }
     
     S = 0   # S_i = train_data[0:S]
-    T = 0   # for IncSAGA, the sample set is train_data[0:T]
-    m = 0   # offline algorithm is DynaSAGA which samples from train_data[0:m]
+    T = 0   # for IncSAGA, the sample set is train_set[0:T]
+    m = 0   # offline algorithm is DynaSAGA which samples from train_set[0:m]
     
     for time in xrange(b):
         loss['Inc']['train'][time] = parameters['Inc'].reg_loss(train_set, mu)
@@ -134,7 +134,7 @@ def process(train_set, test_set, b, arrivals, rho, parameters, step_size, mu):
             parameters['MostRecent'].update_step(train_set[j], step_size, mu)
             
             # Offline
-            if (s % 2 == 0 and m < len(train_data)):
+            if (s % 2 == 0 and m < len(train_set)):
                 j = m
                 m += 1
             else:
@@ -230,36 +230,31 @@ def plot(output, rate, b, name):
 
 if __name__ == "__main__":
     train_data, test_data, m, n = datasets.movielens100k()
-    
     r = 10
     init_L = numpy.random.rand(m, r)
     init_R = numpy.random.rand(r, n)
     opt = models.Opt.SAGA
     
-    batches = [100]
-    rates = [15]     # rho/lambda
-    num_trials = 1
+    b = 100
+    rate = 10     # rho/lambda
+    num_trials = 1      # TODO: average outputs over num_trials
     
-    for b in batches:
-        for rate in rates:
-            arrivals = len(train_data)/b
-            rho = int(arrivals * rate)
-            
-            parameters = {}
-            parameters['Inc'] = models.MatrixFactorization(init_L, init_R, opt)
-            parameters['Unif'] = models.MatrixFactorization(init_L, init_R, opt)
-            parameters['NearUnif'] = models.MatrixFactorization(init_L, init_R, opt)
-            parameters['ExpDecay'] = models.MatrixFactorization(init_L, init_R, opt)
-            parameters['MostRecent'] = models.MatrixFactorization(init_L, init_R, opt)
-            parameters['Offline'] = models.MatrixFactorization(init_L, init_R, opt)
-            parameters['A'] = [models.MatrixFactorization(init_L, init_R, opt) for x in xrange(12)]
-            parameters['B'] = [models.MatrixFactorization(init_L, init_R, opt) for x in xrange(12)]
-            
-            output = process(train_data, test_data, b, arrivals, rho, parameters, 
-                             step_size=MOVIELENS_STEP_SIZE, mu=MOVIELENS_MU)
-            
-            # TODO: average outputs over num_trials
-            
-            # TODO: save output to a file
-            
-            plot(output, rate, b, 'mf')
+    arrivals = len(train_data)/b
+    rho = int(arrivals * rate)
+    
+    parameters = {}
+    parameters['Inc'] = models.MatrixFactorization(init_L, init_R, opt)
+    parameters['Unif'] = models.MatrixFactorization(init_L, init_R, opt)
+    parameters['NearUnif'] = models.MatrixFactorization(init_L, init_R, opt)
+    parameters['ExpDecay'] = models.MatrixFactorization(init_L, init_R, opt)
+    parameters['MostRecent'] = models.MatrixFactorization(init_L, init_R, opt)
+    parameters['Offline'] = models.MatrixFactorization(init_L, init_R, opt)
+    parameters['A'] = [models.MatrixFactorization(init_L, init_R, opt) for x in xrange(12)]
+    parameters['B'] = [models.MatrixFactorization(init_L, init_R, opt) for x in xrange(12)]
+    
+    output = process(train_data, test_data, b, arrivals, rho, parameters, 
+                     step_size=MOVIELENS_STEP_SIZE, mu=MOVIELENS_MU)
+    
+    # TODO: save output to a file
+    
+    plot(output, rate, b, 'rcv')
