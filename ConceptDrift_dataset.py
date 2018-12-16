@@ -32,7 +32,7 @@ def readData(file):
     data = pd.read_csv(file_train, sep=' ', header=None)
     data.columns = names
 
-    for i in range(1, 8):
+    for i in range(1, num_count + 1):
         num = 'Numerical' + str(i)
         x = data[[num]].values.astype(float)
         min_max_scaler = preprocessing.MinMaxScaler()
@@ -41,7 +41,7 @@ def readData(file):
         data[num] = df_normalized
         # print(data.head())
 
-    for i in range(1, 18):
+    for i in range(1, mul_count + 1):
         cat = 'Categorical' + str(i)
         data[cat] = pd.Categorical(data[cat])
         # print(data[cat].nunique())
